@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Comandos locales privados
 .claude/commands/telegram-send.md
+
+# editor
+.vscode
