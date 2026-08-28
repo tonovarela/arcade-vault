@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Hook PostToolUse: pasa por Prettier (y ESLint cuando aplica) los archivos que
-# se acaban de crear o modificar en el proyecto.
+# se acaban de crear o modificar en el proyecto, y les quita los espacios en
+# blanco al final de cada linea.
 #
 # Dos modos, segun tool_name del JSON que llega por stdin:
 #   Write/Edit/MultiEdit/NotebookEdit -> el archivo del payload
@@ -111,6 +112,15 @@ done <<< "$FILES"
 if ! PRETTIER_OUT=$("$PRETTIER" --write --ignore-unknown "${ALL[@]}" 2>&1); then
   printf '%s\n' "$PRETTIER_OUT" | sed 's/^/[prettier] /' >&2
 fi
+
+# Espacios en blanco al final de linea: prettier ya los quita en lo que sabe
+# parsear, esto cubre el resto (yaml raro, .env, .txt, sql, etc.) e incluye
+# markdown (ojo: ahi dos espacios finales son un <br>, se pierden a proposito).
+# Se saltan binarios (grep -I). El \r se conserva para no romper CRLF.
+for f in "${ALL[@]}"; do
+  grep -Iq . "$f" 2>/dev/null || continue
+  perl -pi -e 's/[ \t]+(\r?)$/$1/' "$f" 2>/dev/null
+done
 
 if [[ ${#JS[@]} -gt 0 && -x "$ESLINT" ]]; then
   if ! ESLINT_OUT=$("$ESLINT" --fix --no-warn-ignored "${JS[@]}" 2>&1); then
